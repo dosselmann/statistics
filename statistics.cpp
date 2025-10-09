@@ -21,47 +21,12 @@
 // statistics.cpp
 //
 
+#include <array>
 #include <iostream>
 #include <list>
+#include <ranges>
 
 #include "statistics.hpp"
-
-// custom unweighted accumulator
-
-class custom_unweighted_accumulator :
-    public std::unweighted_accumulator<double>
-{
-public:
-    constexpr custom_unweighted_accumulator() noexcept
-    { first_ = true; sum_sq_=0; }
-  
-    constexpr void operator()(const double& x)
-    {
-        unweighted_accumulator::operator()(x);
-    
-        if (first_)
-        {
-            min_   = max_ = x;
-            first_ = false;
-        }
-        else
-        {
-            min_ = std::min(min_, x);
-            max_ = std::max(max_, x);
-        }
-    
-        sum_sq_ += x*x;
-    }
-  
-    constexpr double min()    const noexcept { return min_; }
-    constexpr double max()    const noexcept { return max_; }
-    constexpr double sum_sq() const noexcept { return sum_sq_; }
-
-private:
-    bool   first_;
-    double min_, max_;
-    double sum_sq_;
-};
 
 /* main */
 
@@ -84,18 +49,27 @@ main()
         | std::ranges::to<std::vector<float>>();
     std::array<float, 5> W = { { 2.0f, 2.0f, 1.0f, 3.0f, 5.0f } };
 
-    std::cout << "mean = " << std::mean(std::execution::par, A_, W);
-    std::cout << "\nvariance = " << std::variance(A_);
-    std::cout << "\nstandard deviation = " << std::standard_deviation(A_);
+    std::cout << "mean = "
+        << std::mean(std::execution::par, A_);
+    std::cout << "\nweighted mean = "
+        << std::mean(std::execution::par, A_, W);
+    std::cout << "\ngeometric mean = "          << std::geometric_mean(A_);
+    std::cout << "\nweighted geometric mean = " << std::geometric_mean(A_, W);
+    std::cout << "\nharmonic mean = "           << std::harmonic_mean(A_);
+    std::cout << "\nweighted harmonic mean = "  << std::harmonic_mean(A_, W);
+    std::cout << "\nvariance = "                << std::variance(A_);
+    std::cout << "\nstandard deviation = "      << std::standard_deviation(A_);
+    std::cout << "\nskewness = "                << std::skewness(A_);
+    std::cout << "\nkurtosis = "                << std::kurtosis(A_);
     }
 
     std::cout << "\n";
 
     // example 2
     {
-    std::list<int> L = { 8, 6, 12, 3, 5 };
+    std::list<float> L = { 8.0f, 6.0f, 12.0f, 3.0f, 5.0f };
 
-    auto [mean, variance] = std::mean_variance<float>(L);
+    auto [mean, variance] = std::mean_variance(L);
     std::cout << "mean = "       << mean;
     std::cout << "\nvariance = " << variance;
     }
@@ -106,42 +80,21 @@ main()
     {
     std::vector<double> v = { 2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0 };
 
-    std::cout << "kurtosis = " << std::kurtosis(v);
+    std::cout << "skewness = " << std::skewness(v, false);
+    
+    std::cout << "\nkurtosis = " << std::kurtosis(
+        v, { .sample=false, .excess=true });
     }
 
     std::cout << "\n";
 
     // example 4
     {
-    std::list<double> L = { 1., 2., 2., 2., 3., 3., 3. };
+    std::vector<double> v1 = {
+         2.0,  3.0,  5.0,  7.0,  11.0,  13.0,  17.0,  19.0 };
+    std::vector<double> v2 = {
+        -2.0, -3.0, -5.0, -7.0, -11.0, -13.0, -17.0, -19.0 };
 
-    std::unweighted_accumulator<double> acc;
-
-    for (const auto& x : L)
-        acc(x);
-
-    std::cout << "mean = "                 << acc.mean();
-    std::cout << "\nvariance = "           << acc.variance(0);
-    std::cout << "\nstandard deviation = " << acc.standard_deviation();
-    std::cout << "\nskewness = "           << acc.skewness(false);
-    std::cout << "\nkurtosis = "           << acc.kurtosis();
-    }
-
-    std::cout << "\n";
-    
-    // example 5
-    {
-    std::vector<double> L = { 17.2, -14.27, 19.22, 13.56, -0.01, 2.6 };
-
-    custom_unweighted_accumulator acc;
-
-    for (const double& x: L)
-        acc(x);
-
-    std::cout << "mean = "             << acc.mean();
-    std::cout << "\nvariance = "       << acc.variance();
-    std::cout << "\nmax = "            << acc.max();
-    std::cout << "\nmin = "            << acc.min();
-    std::cout << "\nsum of squares = " << acc.sum_sq();
+    std::cout << "covariance = " << std::covariance(v1, v2);
     }
 }
